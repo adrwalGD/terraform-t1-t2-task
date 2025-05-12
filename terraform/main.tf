@@ -182,8 +182,8 @@ resource "azurerm_linux_function_app" "func_app" {
     application_stack {
       python_version = "3.9" # Specify Python version (or node, dotnet etc.)
     }
-    # vnet_route_all_enabled = true       # Route all outbound traffic through VNet
-    ftps_state = "Disabled" # Disable FTP for security
+    vnet_route_all_enabled = true       # Route all outbound traffic through VNet
+    ftps_state             = "Disabled" # Disable FTP for security
   }
 
   app_settings = {
