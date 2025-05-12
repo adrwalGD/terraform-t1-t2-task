@@ -182,8 +182,8 @@ resource "azurerm_linux_function_app" "func_app" {
     application_stack {
       python_version = "3.9" # Specify Python version (or node, dotnet etc.)
     }
-    vnet_route_all_enabled = true       # Route all outbound traffic through VNet
-    ftps_state             = "Disabled" # Disable FTP for security
+    # vnet_route_all_enabled = true       # Route all outbound traffic through VNet
+    ftps_state = "Disabled" # Disable FTP for security
   }
 
   app_settings = {
@@ -196,20 +196,20 @@ resource "azurerm_linux_function_app" "func_app" {
     "KEY_VAULT_URI"                            = azurerm_key_vault.vault.vault_uri
     "STORAGE_ACCOUNT_NAME"                     = azurerm_storage_account.main_storage.name
     "SECRET_NAME"                              = "SECRET-TEST"
-    "WEBSITE_DNS_SERVER"                       = "168.63.129.16" # Required for PE resolution with VNet integration
-    "WEBSITE_VNET_ROUTE_ALL"                   = "1"             # Ensure VNet integration routes all traffic
+    # "WEBSITE_DNS_SERVER"                       = "168.63.129.16" # Required for PE resolution with VNet integration
+    # "WEBSITE_VNET_ROUTE_ALL"                   = "1"             # Ensure VNet integration routes all traffic
   }
 
-  #   lifecycle {
-  #     ignore_changes = [
-  #       # Ignore changes to app_settings to prevent Terraform from overwriting
-  #       # settings potentially managed elsewhere (like connection strings after deployment)
-  #       # or if you manage function code deployment separately.
-  #       app_settings["AzureWebJobsStorage"],
-  #       app_settings["WEBSITE_CONTENTAZUREFILECONNECTIONSTRING"],
-  #       app_settings["WEBSITE_CONTENTSHARE"]
-  #     ]
-  #   }
+  lifecycle {
+    ignore_changes = [
+      # Ignore changes to app_settings to prevent Terraform from overwriting
+      # settings potentially managed elsewhere (like connection strings after deployment)
+      # or if you manage function code deployment separately.
+      app_settings["AzureWebJobsStorage"],
+      app_settings["WEBSITE_CONTENTAZUREFILECONNECTIONSTRING"],
+      app_settings["WEBSITE_CONTENTSHARE"]
+    ]
+  }
 }
 
 resource "azurerm_role_assignment" "func_vault_read" {
