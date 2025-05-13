@@ -101,21 +101,22 @@ resource "azurerm_key_vault" "vault" {
   tenant_id                     = data.azurerm_client_config.current.tenant_id
   sku_name                      = "standard"
   public_network_access_enabled = true
+  enable_rbac_authorization     = true
 }
 
-resource "azurerm_key_vault_access_policy" "vault_access" {
-  key_vault_id = azurerm_key_vault.vault.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = data.azurerm_client_config.current.object_id
-
-  key_permissions    = ["Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore", "Decrypt", "Encrypt", "UnwrapKey", "WrapKey", "Verify", "Sign", "Purge", "Release", "Rotate", "GetRotationPolicy", "SetRotationPolicy"]
-  secret_permissions = ["Get", "List", "Set", "Delete", "Recover", "Backup", "Restore", "Purge"]
+resource "azurerm_role_assignment" "tf_vault_access" {
+  principal_id         = data.azurerm_client_config.current.object_id
+  role_definition_name = "Key Vault Administrator"
+  scope                = azurerm_key_vault.vault.id
 }
 
 resource "azurerm_key_vault_secret" "test_secret" {
   name         = "SECRET-TEST"
   value        = "test_value"
   key_vault_id = azurerm_key_vault.vault.id
+  depends_on = [
+    azurerm_role_assignment.tf_vault_access
+  ]
 }
 
 resource "azurerm_private_endpoint" "vault_pe" {
@@ -216,6 +217,11 @@ resource "azurerm_role_assignment" "func_vault_read" {
   principal_id         = azurerm_linux_function_app.func_app.identity[0].principal_id
   role_definition_name = "Key Vault Secrets User"
   scope                = azurerm_key_vault.vault.id
+
+  depends_on = [
+    azurerm_linux_function_app.func_app,
+    azurerm_key_vault.vault
+  ]
 }
 
 resource "azurerm_role_assignment" "func_storage_read" {

@@ -18,3 +18,13 @@ output "function_trigger_url" {
   # You might need to get the key from the portal or use 'anonymous' auth level for direct access without a key.
   value = "https://${azurerm_linux_function_app.func_app.default_hostname}/api/HttpTrigger1" # Adjust path if function name/route differs
 }
+
+output "tenant_id" {
+  description = "Tenant ID of the Azure subscription."
+  value       = data.azurerm_client_config.current.tenant_id
+}
+
+output "object_id" {
+  value       = data.azurerm_client_config.current.object_id
+  description = "Object ID of the current Azure client."
+}
