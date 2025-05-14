@@ -212,6 +212,7 @@ resource "azurerm_linux_function_app" "func_app" {
     "FUNCTIONS_WORKER_RUNTIME"                 = "python" # Or node, dotnet etc.
     "KEY_VAULT_URI"                            = azurerm_key_vault.vault.vault_uri
     "STORAGE_ACCOUNT_NAME"                     = azurerm_storage_account.main_storage.name
+    "CONTAINER_NAME"                           = azurerm_storage_container.main_container.name
     "SECRET_NAME"                              = "SECRET-TEST"
     "WEBSITE_DNS_SERVER"                       = "168.63.129.16" # Required for PE resolution with VNet integration
     "WEBSITE_VNET_ROUTE_ALL"                   = "1"             # Ensure VNet integration routes all traffic
