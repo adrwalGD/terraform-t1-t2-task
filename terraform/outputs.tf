@@ -28,3 +28,8 @@ output "object_id" {
   value       = data.azurerm_client_config.current.object_id
   description = "Object ID of the current Azure client."
 }
+
+output "kv_uri" {
+  description = "URI of the Key Vault."
+  value       = azurerm_key_vault.vault.vault_uri
+}

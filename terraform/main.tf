@@ -39,6 +39,22 @@ resource "azurerm_subnet" "main_subnet" {
   address_prefixes     = ["10.0.0.0/24"]
 }
 
+resource "azurerm_subnet" "function_integration_subnet" {
+  name                 = "adrwal-func-integration-subnet"
+  resource_group_name  = azurerm_resource_group.main_rg.name
+  virtual_network_name = azurerm_virtual_network.main_vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+
+  delegation {
+    name = "function-delegation"
+    service_delegation {
+      name    = "Microsoft.Web/serverFarms"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+    }
+  }
+
+}
+
 # =================== blob storage ===================
 resource "azurerm_storage_account" "main_storage" {
   name                     = "adrwalstorageacblob"
@@ -140,7 +156,7 @@ resource "azurerm_private_endpoint" "vault_pe" {
 }
 
 resource "azurerm_private_dns_zone" "vault_dns_zone" {
-  name                = "privatelink.vault.azure.net"
+  name                = "privatelink.vaultcore.azure.net"
   resource_group_name = azurerm_resource_group.main_rg.name
 }
 
@@ -159,7 +175,7 @@ resource "azurerm_service_plan" "func_plan" {
   location            = azurerm_resource_group.main_rg.location
   resource_group_name = azurerm_resource_group.main_rg.name
   os_type             = "Linux"
-  sku_name            = "Y1"
+  sku_name            = "EP1"
 }
 
 resource "azurerm_linux_function_app" "func_app" {
@@ -175,8 +191,8 @@ resource "azurerm_linux_function_app" "func_app" {
   }
 
   # VNet Integration Settings
-  #   virtual_network_subnet_id = azurerm_subnet.main_subnet.id
-  https_only = true
+  virtual_network_subnet_id = azurerm_subnet.function_integration_subnet.id
+  https_only                = true
   # public_network_access_enabled = false # Restrict direct public access
 
   site_config {
@@ -197,8 +213,8 @@ resource "azurerm_linux_function_app" "func_app" {
     "KEY_VAULT_URI"                            = azurerm_key_vault.vault.vault_uri
     "STORAGE_ACCOUNT_NAME"                     = azurerm_storage_account.main_storage.name
     "SECRET_NAME"                              = "SECRET-TEST"
-    # "WEBSITE_DNS_SERVER"                       = "168.63.129.16" # Required for PE resolution with VNet integration
-    # "WEBSITE_VNET_ROUTE_ALL"                   = "1"             # Ensure VNet integration routes all traffic
+    "WEBSITE_DNS_SERVER"                       = "168.63.129.16" # Required for PE resolution with VNet integration
+    "WEBSITE_VNET_ROUTE_ALL"                   = "1"             # Ensure VNet integration routes all traffic
   }
 
   lifecycle {
