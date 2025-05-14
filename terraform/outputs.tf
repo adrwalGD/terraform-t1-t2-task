@@ -33,3 +33,8 @@ output "kv_uri" {
   description = "URI of the Key Vault."
   value       = azurerm_key_vault.vault.vault_uri
 }
+
+output "storage_acc_url" {
+  description = "URL of the Storage Account."
+  value       = azurerm_storage_account.main_storage.primary_blob_endpoint
+}
