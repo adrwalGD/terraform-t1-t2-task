@@ -30,8 +30,14 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "main_rg" {
-  name     = "adrwal-rg-de"
+  name     = "adrwal-rg-de${random_string.rand_str.result}"
   location = "germanywestcentral"
+}
+
+resource "random_string" "rand_str" {
+  length  = 4
+  special = false
+  upper   = false
 }
 
 # vnet
@@ -75,7 +81,7 @@ resource "azurerm_subnet" "app_gw_subnet" {
 
 # =================== blob storage ===================
 resource "azurerm_storage_account" "main_storage" {
-  name                          = "adrwalstorageacblobde"
+  name                          = "adrwalstorageac${random_string.rand_str.result}"
   resource_group_name           = azurerm_resource_group.main_rg.name
   location                      = azurerm_resource_group.main_rg.location
   account_tier                  = "Standard"
@@ -88,6 +94,21 @@ resource "azurerm_storage_container" "main_container" {
   storage_account_id    = azurerm_storage_account.main_storage.id
   container_access_type = "private"
 }
+
+resource "azurerm_storage_blob" "example_file" {
+  name                   = "main.tf"
+  storage_account_name   = azurerm_storage_account.main_storage.name
+  storage_container_name = azurerm_storage_container.main_container.name
+  type                   = "Block"
+  source                 = "main.tf"
+}
+
+# terraform access to storage account
+# resource "azurerm_role_assignment" "tf_storage_access" {
+#   principal_id         = data.azurerm_client_config.current.object_id
+#   role_definition_name = "Owner"
+#   scope                = azurerm_storage_account.main_storage.id
+# }
 
 resource "azurerm_private_endpoint" "sotrage_acc_endpoint" {
   name                = "adrwal-storage-endpoint"
@@ -234,7 +255,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "vnet_storage_acc_table
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_key_vault" "vault" {
-  name                          = "adrwalvaultde"
+  name                          = "adrwalvaultde${random_string.rand_str.result}"
   location                      = azurerm_resource_group.main_rg.location
   resource_group_name           = azurerm_resource_group.main_rg.name
   tenant_id                     = data.azurerm_client_config.current.tenant_id
@@ -470,7 +491,7 @@ resource "azurerm_application_gateway" "app_gateway" {
 
 # =================== function app ===================
 resource "azurerm_service_plan" "func_plan" {
-  name                = "adrwal-func-plan-de"
+  name                = "adrwal-func-plan-de${random_string.rand_str.result}"
   location            = azurerm_resource_group.main_rg.location
   resource_group_name = azurerm_resource_group.main_rg.name
   os_type             = "Linux"
@@ -478,7 +499,7 @@ resource "azurerm_service_plan" "func_plan" {
 }
 
 resource "azurerm_linux_function_app" "func_app" {
-  name                       = "adrwal-func-app-de"
+  name                       = "adrwal-func-app-de${random_string.rand_str.result}"
   location                   = azurerm_resource_group.main_rg.location
   resource_group_name        = azurerm_resource_group.main_rg.name
   service_plan_id            = azurerm_service_plan.func_plan.id
@@ -490,9 +511,9 @@ resource "azurerm_linux_function_app" "func_app" {
   }
 
   # VNet Integration Settings
-  virtual_network_subnet_id = azurerm_subnet.function_integration_subnet.id
-  https_only                = true
-  #   public_network_access_enabled = false # Restrict direct public access
+  virtual_network_subnet_id     = azurerm_subnet.function_integration_subnet.id
+  https_only                    = true
+  public_network_access_enabled = true # Restrict direct public access
 
   site_config {
     application_stack {
@@ -513,7 +534,7 @@ resource "azurerm_linux_function_app" "func_app" {
     # Settings needed by the function code
     "AzureWebJobsStorage"                      = azurerm_storage_account.main_storage.primary_connection_string # Connection string for function triggers/bindings
     "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING" = azurerm_storage_account.main_storage.primary_connection_string
-    "WEBSITE_CONTENTSHARE"                     = lower("adrwal-func-app-de-${azurerm_storage_account.main_storage.name}") # Unique share name for function app content
+    "WEBSITE_CONTENTSHARE"                     = lower("adrwal-func-app-de-${random_string.rand_str.result}") # Unique share name for function app content
     "FUNCTIONS_EXTENSION_VERSION"              = "~4"
     "FUNCTIONS_WORKER_RUNTIME"                 = "python" # Or node, dotnet etc.
     "KEY_VAULT_URI"                            = azurerm_key_vault.vault.vault_uri
@@ -535,6 +556,11 @@ resource "azurerm_linux_function_app" "func_app" {
       app_settings["WEBSITE_CONTENTSHARE"]
     ]
   }
+
+  depends_on = [
+    azurerm_private_endpoint.sotrage_acc_file_endpoint,
+    azurerm_private_dns_zone_virtual_network_link.vnet_storage_acc_file
+  ]
 }
 
 resource "azurerm_private_endpoint" "func_app_pe" {
