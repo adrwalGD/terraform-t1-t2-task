@@ -1,15 +1,11 @@
 import logging
 import json
 import azure.functions as func
-import time
 import os
 
 from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential
-from azure.storage.blob import (
-    BlobServiceClient,
-    ContainerClient,
-)  # Added for Blob Storage
+from azure.storage.blob import BlobServiceClient
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
