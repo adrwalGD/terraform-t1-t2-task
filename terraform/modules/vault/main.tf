@@ -26,38 +26,6 @@ resource "azurerm_key_vault_secret" "test_secret" {
   ]
 }
 
-# resource "azurerm_key_vault_certificate" "app_gw_ssl_cert" {
-#   name         = "appgw-ssl-cert-2"
-#   key_vault_id = azurerm_key_vault.vault.id
-
-#   certificate_policy {
-#     issuer_parameters {
-#       name = "Self" #
-#     }
-#     key_properties {
-#       exportable = true
-#       key_size   = 2048
-#       key_type   = "RSA"
-#       reuse_key  = false
-#     }
-#     secret_properties {
-#       content_type = "application/x-pkcs12"
-#     }
-#     x509_certificate_properties {
-#       key_usage = [
-#         "digitalSignature",
-#         "keyEncipherment",
-#         "dataEncipherment",
-#         "keyAgreement",
-#       ]
-#       subject            = "CN=adrwal-func-app.example.com"
-#       validity_in_months = 12
-
-#     }
-#   }
-
-#   depends_on = [azurerm_role_assignment.tf_vault_access]
-# }
 
 resource "azurerm_private_endpoint" "vault_pe" {
   name                = "adrwal-vault-endpoint"
