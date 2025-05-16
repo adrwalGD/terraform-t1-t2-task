@@ -6,7 +6,7 @@ output "disable_storage_acc_public_network_access" {
 
 output "disable_vault_public_network_access" {
   description = "Disable public network access for the Key Vault."
-  value       = "az keyvault update --name ${azurerm_key_vault.vault.name} --resource-group ${azurerm_resource_group.main_rg.name} --public-network-access 'Disabled'"
+  value       = "az keyvault update --name ${module.vault.name} --resource-group ${azurerm_resource_group.main_rg.name} --public-network-access 'Disabled'"
 }
 
 

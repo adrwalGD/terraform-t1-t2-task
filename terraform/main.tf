@@ -248,65 +248,79 @@ module "storage" {
 
 # =================== vault ===================
 
-data "azurerm_client_config" "current" {}
+module "vault" {
+  source = "./modules/vault"
 
-resource "azurerm_key_vault" "vault" {
-  name                          = "adrwalvaultde${random_string.rand_str.result}"
-  location                      = azurerm_resource_group.main_rg.location
-  resource_group_name           = azurerm_resource_group.main_rg.name
-  tenant_id                     = data.azurerm_client_config.current.tenant_id
-  sku_name                      = "standard"
-  public_network_access_enabled = true
-  enable_rbac_authorization     = true
-}
-
-resource "azurerm_role_assignment" "tf_vault_access" {
-  principal_id         = data.azurerm_client_config.current.object_id
-  role_definition_name = "Key Vault Administrator"
-  scope                = azurerm_key_vault.vault.id
-}
-
-resource "azurerm_key_vault_secret" "test_secret" {
-  name         = "SECRET-TEST"
-  value        = "test_value"
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_role_assignment.tf_vault_access
-  ]
-}
-
-resource "azurerm_private_endpoint" "vault_pe" {
-  name                = "adrwal-vault-endpoint"
+  resource_group_name = azurerm_resource_group.main_rg.name
   location            = azurerm_resource_group.main_rg.location
-  resource_group_name = azurerm_resource_group.main_rg.name
-
-  subnet_id = azurerm_subnet.main_subnet.id
-
-  private_service_connection {
-    name                           = "adrwal-vault-connection"
-    is_manual_connection           = false
-    private_connection_resource_id = azurerm_key_vault.vault.id
-    subresource_names              = ["vault"]
-  }
-
-  private_dns_zone_group {
-    name                 = "adrwal-vault-dns-group"
-    private_dns_zone_ids = [azurerm_private_dns_zone.vault_dns_zone.id]
-  }
+  subnet_id           = azurerm_subnet.main_subnet.id
+  virtual_network_id  = azurerm_virtual_network.main_vnet.id
+  resource_suffix     = random_string.rand_str.result
+  example_secrets = [{
+    name  = "SECRET-TEST"
+    value = "test_value"
+  }]
 }
 
-resource "azurerm_private_dns_zone" "vault_dns_zone" {
-  name                = "privatelink.vaultcore.azure.net"
-  resource_group_name = azurerm_resource_group.main_rg.name
-}
+# data "azurerm_client_config" "current" {}
 
-resource "azurerm_private_dns_zone_virtual_network_link" "vnet_vault" {
-  name                  = "adrwal-vault-vnet-link"
-  resource_group_name   = azurerm_resource_group.main_rg.name
-  private_dns_zone_name = azurerm_private_dns_zone.vault_dns_zone.name
-  virtual_network_id    = azurerm_virtual_network.main_vnet.id
-  registration_enabled  = false
-}
+# resource "azurerm_key_vault" "vault" {
+#   name                          = "adrwalvaultde${random_string.rand_str.result}"
+#   location                      = azurerm_resource_group.main_rg.location
+#   resource_group_name           = azurerm_resource_group.main_rg.name
+#   tenant_id                     = data.azurerm_client_config.current.tenant_id
+#   sku_name                      = "standard"
+#   public_network_access_enabled = true
+#   enable_rbac_authorization     = true
+# }
+
+# resource "azurerm_role_assignment" "tf_vault_access" {
+#   principal_id         = data.azurerm_client_config.current.object_id
+#   role_definition_name = "Key Vault Administrator"
+#   scope                = azurerm_key_vault.vault.id
+# }
+
+# resource "azurerm_key_vault_secret" "test_secret" {
+#   name         = "SECRET-TEST"
+#   value        = "test_value"
+#   key_vault_id = azurerm_key_vault.vault.id
+#   depends_on = [
+#     azurerm_role_assignment.tf_vault_access
+#   ]
+# }
+
+# resource "azurerm_private_endpoint" "vault_pe" {
+#   name                = "adrwal-vault-endpoint"
+#   location            = azurerm_resource_group.main_rg.location
+#   resource_group_name = azurerm_resource_group.main_rg.name
+
+#   subnet_id = azurerm_subnet.main_subnet.id
+
+#   private_service_connection {
+#     name                           = "adrwal-vault-connection"
+#     is_manual_connection           = false
+#     private_connection_resource_id = azurerm_key_vault.vault.id
+#     subresource_names              = ["vault"]
+#   }
+
+#   private_dns_zone_group {
+#     name                 = "adrwal-vault-dns-group"
+#     private_dns_zone_ids = [azurerm_private_dns_zone.vault_dns_zone.id]
+#   }
+# }
+
+# resource "azurerm_private_dns_zone" "vault_dns_zone" {
+#   name                = "privatelink.vaultcore.azure.net"
+#   resource_group_name = azurerm_resource_group.main_rg.name
+# }
+
+# resource "azurerm_private_dns_zone_virtual_network_link" "vnet_vault" {
+#   name                  = "adrwal-vault-vnet-link"
+#   resource_group_name   = azurerm_resource_group.main_rg.name
+#   private_dns_zone_name = azurerm_private_dns_zone.vault_dns_zone.name
+#   virtual_network_id    = azurerm_virtual_network.main_vnet.id
+#   registration_enabled  = false
+# }
 # ==================================================
 
 # =================== Application Gateway Components ===================
@@ -328,12 +342,14 @@ resource "azurerm_user_assigned_identity" "app_gw_identity" {
 resource "azurerm_role_assignment" "app_gw_kv_cert_access" {
   principal_id         = azurerm_user_assigned_identity.app_gw_identity.principal_id
   role_definition_name = "Key Vault Secrets User" # Allows reading secret content
-  scope                = azurerm_key_vault.vault.id
+  # scope                = azurerm_key_vault.vault.id
+  scope = module.vault.id
 }
 
 resource "azurerm_key_vault_certificate" "app_gw_ssl_cert" {
-  name         = "appgw-ssl-cert"
-  key_vault_id = azurerm_key_vault.vault.id
+  name = "appgw-ssl-cert"
+  # key_vault_id = azurerm_key_vault.vault.id
+  key_vault_id = module.vault.id
 
   certificate_policy {
     issuer_parameters {
@@ -361,7 +377,10 @@ resource "azurerm_key_vault_certificate" "app_gw_ssl_cert" {
     }
   }
 
-  depends_on = [azurerm_role_assignment.tf_vault_access]
+  depends_on = [
+    # azurerm_role_assignment.tf_vault_access
+    azurerm_role_assignment.func_vault_read
+  ]
 }
 
 #
@@ -509,7 +528,7 @@ resource "azurerm_linux_function_app" "func_app" {
     "WEBSITE_CONTENTSHARE"                     = lower("adrwal-func-app-de-${random_string.rand_str.result}")
     "FUNCTIONS_EXTENSION_VERSION"              = "~4"
     "FUNCTIONS_WORKER_RUNTIME"                 = "python"
-    "KEY_VAULT_URI"                            = azurerm_key_vault.vault.vault_uri
+    "KEY_VAULT_URI"                            = module.vault.vault_uri
     "STORAGE_ACCOUNT_NAME"                     = module.storage.name
     "CONTAINER_NAME"                           = module.storage.container_name
     "SECRET_NAME"                              = "SECRET-TEST"
@@ -578,11 +597,11 @@ resource "azurerm_private_dns_zone_virtual_network_link" "func_app_dns_vnet_link
 resource "azurerm_role_assignment" "func_vault_read" {
   principal_id         = azurerm_linux_function_app.func_app.identity[0].principal_id
   role_definition_name = "Key Vault Secrets User"
-  scope                = azurerm_key_vault.vault.id
+  scope                = module.vault.id
 
   depends_on = [
     azurerm_linux_function_app.func_app,
-    azurerm_key_vault.vault
+    # azurerm_key_vault.vault
   ]
 }
 
