@@ -69,165 +69,179 @@ resource "azurerm_subnet" "app_gw_subnet" {
 }
 
 # =================== blob storage ===================
-resource "azurerm_storage_account" "main_storage" {
-  name                          = "adrwalstorageac${random_string.rand_str.result}"
-  resource_group_name           = azurerm_resource_group.main_rg.name
-  location                      = azurerm_resource_group.main_rg.location
-  account_tier                  = "Standard"
-  account_replication_type      = "LRS"
-  public_network_access_enabled = true
-}
+module "storage" {
+  source = "./modules/storage"
 
-resource "azurerm_storage_container" "main_container" {
-  name                  = "adrwalcontainer"
-  storage_account_id    = azurerm_storage_account.main_storage.id
-  container_access_type = "private"
-}
-
-resource "azurerm_storage_blob" "example_file" {
-  name                   = "main.tf"
-  storage_account_name   = azurerm_storage_account.main_storage.name
-  storage_container_name = azurerm_storage_container.main_container.name
-  type                   = "Block"
-  source                 = "main.tf"
-}
-
-resource "azurerm_private_endpoint" "sotrage_acc_endpoint" {
-  name                = "adrwal-storage-endpoint"
+  resource_group_name = azurerm_resource_group.main_rg.name
   location            = azurerm_resource_group.main_rg.location
-  resource_group_name = azurerm_resource_group.main_rg.name
+  subnet_id           = azurerm_subnet.main_subnet.id
+  virtual_network_id  = azurerm_virtual_network.main_vnet.id
+  resource_suffix     = random_string.rand_str.result
+  example_files = [{
+    name   = "main.tf"
+    source = "main.tf"
+  }]
 
-  subnet_id = azurerm_subnet.main_subnet.id
-
-  private_service_connection {
-    name                           = "adrwal-storage-connection"
-    is_manual_connection           = false
-    private_connection_resource_id = azurerm_storage_account.main_storage.id
-    subresource_names              = ["blob"]
-  }
-
-  private_dns_zone_group {
-    name = "adrwal-storage-dns-group"
-    private_dns_zone_ids = [
-      azurerm_private_dns_zone.storage_acc_dns_zone.id,
-    ]
-  }
 }
+# resource "azurerm_storage_account" "main_storage" {
+#   name                          = "adrwalstorageac${random_string.rand_str.result}"
+#   resource_group_name           = azurerm_resource_group.main_rg.name
+#   location                      = azurerm_resource_group.main_rg.location
+#   account_tier                  = "Standard"
+#   account_replication_type      = "LRS"
+#   public_network_access_enabled = true
+# }
 
-resource "azurerm_private_endpoint" "sotrage_acc_file_endpoint" {
-  name                = "adrwal-storage-file-endpoint"
-  location            = azurerm_resource_group.main_rg.location
-  resource_group_name = azurerm_resource_group.main_rg.name
+# resource "azurerm_storage_container" "main_container" {
+#   name                  = "adrwalcontainer"
+#   storage_account_id    = azurerm_storage_account.main_storage.id
+#   container_access_type = "private"
+# }
 
-  subnet_id = azurerm_subnet.main_subnet.id
+# resource "azurerm_storage_blob" "example_file" {
+#   name                   = "main.tf"
+#   storage_account_name   = azurerm_storage_account.main_storage.name
+#   storage_container_name = azurerm_storage_container.main_container.name
+#   type                   = "Block"
+#   source                 = "main.tf"
+# }
 
-  private_service_connection {
-    name                           = "adrwal-storage-file-connection"
-    is_manual_connection           = false
-    private_connection_resource_id = azurerm_storage_account.main_storage.id
-    subresource_names              = ["file"]
-  }
+# resource "azurerm_private_endpoint" "sotrage_acc_endpoint" {
+#   name                = "adrwal-storage-endpoint"
+#   location            = azurerm_resource_group.main_rg.location
+#   resource_group_name = azurerm_resource_group.main_rg.name
 
-  private_dns_zone_group {
-    name = "adrwal-storage-file-dns-group"
-    private_dns_zone_ids = [
-      azurerm_private_dns_zone.storage_acc_dns_zone_file.id,
-    ]
-  }
-}
-resource "azurerm_private_endpoint" "sotrage_acc_queue_endpoint" {
-  name                = "adrwal-storage-queue-endpoint"
-  location            = azurerm_resource_group.main_rg.location
-  resource_group_name = azurerm_resource_group.main_rg.name
+#   subnet_id = azurerm_subnet.main_subnet.id
 
-  subnet_id = azurerm_subnet.main_subnet.id
+#   private_service_connection {
+#     name                           = "adrwal-storage-connection"
+#     is_manual_connection           = false
+#     private_connection_resource_id = azurerm_storage_account.main_storage.id
+#     subresource_names              = ["blob"]
+#   }
 
-  private_service_connection {
-    name                           = "adrwal-storage-queue-connection"
-    is_manual_connection           = false
-    private_connection_resource_id = azurerm_storage_account.main_storage.id
-    subresource_names              = ["queue"]
-  }
+#   private_dns_zone_group {
+#     name = "adrwal-storage-dns-group"
+#     private_dns_zone_ids = [
+#       azurerm_private_dns_zone.storage_acc_dns_zone.id,
+#     ]
+#   }
+# }
 
-  private_dns_zone_group {
-    name = "adrwal-storage-queue-dns-group"
-    private_dns_zone_ids = [
-      azurerm_private_dns_zone.storage_acc_dns_zone_queue.id,
-    ]
-  }
-}
+# resource "azurerm_private_endpoint" "sotrage_acc_file_endpoint" {
+#   name                = "adrwal-storage-file-endpoint"
+#   location            = azurerm_resource_group.main_rg.location
+#   resource_group_name = azurerm_resource_group.main_rg.name
 
-resource "azurerm_private_endpoint" "sotrage_acc_table_endpoint" {
-  name                = "adrwal-storage-table-endpoint"
-  location            = azurerm_resource_group.main_rg.location
-  resource_group_name = azurerm_resource_group.main_rg.name
+#   subnet_id = azurerm_subnet.main_subnet.id
 
-  subnet_id = azurerm_subnet.main_subnet.id
+#   private_service_connection {
+#     name                           = "adrwal-storage-file-connection"
+#     is_manual_connection           = false
+#     private_connection_resource_id = azurerm_storage_account.main_storage.id
+#     subresource_names              = ["file"]
+#   }
 
-  private_service_connection {
-    name                           = "adrwal-storage-table-connection"
-    is_manual_connection           = false
-    private_connection_resource_id = azurerm_storage_account.main_storage.id
-    subresource_names              = ["table"]
-  }
+#   private_dns_zone_group {
+#     name = "adrwal-storage-file-dns-group"
+#     private_dns_zone_ids = [
+#       azurerm_private_dns_zone.storage_acc_dns_zone_file.id,
+#     ]
+#   }
+# }
+# resource "azurerm_private_endpoint" "sotrage_acc_queue_endpoint" {
+#   name                = "adrwal-storage-queue-endpoint"
+#   location            = azurerm_resource_group.main_rg.location
+#   resource_group_name = azurerm_resource_group.main_rg.name
 
-  private_dns_zone_group {
-    name = "adrwal-storage-table-dns-group"
-    private_dns_zone_ids = [
-      azurerm_private_dns_zone.storage_acc_dns_zone_table.id,
-    ]
-  }
-}
+#   subnet_id = azurerm_subnet.main_subnet.id
 
-resource "azurerm_private_dns_zone" "storage_acc_dns_zone" {
-  name                = "privatelink.blob.core.windows.net"
-  resource_group_name = azurerm_resource_group.main_rg.name
-}
+#   private_service_connection {
+#     name                           = "adrwal-storage-queue-connection"
+#     is_manual_connection           = false
+#     private_connection_resource_id = azurerm_storage_account.main_storage.id
+#     subresource_names              = ["queue"]
+#   }
 
-resource "azurerm_private_dns_zone" "storage_acc_dns_zone_file" {
-  name                = "privatelink.file.core.windows.net"
-  resource_group_name = azurerm_resource_group.main_rg.name
-}
+#   private_dns_zone_group {
+#     name = "adrwal-storage-queue-dns-group"
+#     private_dns_zone_ids = [
+#       azurerm_private_dns_zone.storage_acc_dns_zone_queue.id,
+#     ]
+#   }
+# }
 
-resource "azurerm_private_dns_zone" "storage_acc_dns_zone_queue" {
-  name                = "privatelink.queue.core.windows.net"
-  resource_group_name = azurerm_resource_group.main_rg.name
-}
+# resource "azurerm_private_endpoint" "sotrage_acc_table_endpoint" {
+#   name                = "adrwal-storage-table-endpoint"
+#   location            = azurerm_resource_group.main_rg.location
+#   resource_group_name = azurerm_resource_group.main_rg.name
 
-resource "azurerm_private_dns_zone" "storage_acc_dns_zone_table" {
-  name                = "privatelink.table.core.windows.net"
-  resource_group_name = azurerm_resource_group.main_rg.name
-}
+#   subnet_id = azurerm_subnet.main_subnet.id
 
-resource "azurerm_private_dns_zone_virtual_network_link" "vnet_storage_acc" {
-  name                  = "adrwal-storage-vnet-link"
-  resource_group_name   = azurerm_resource_group.main_rg.name
-  private_dns_zone_name = azurerm_private_dns_zone.storage_acc_dns_zone.name
-  virtual_network_id    = azurerm_virtual_network.main_vnet.id
-  registration_enabled  = false
-}
+#   private_service_connection {
+#     name                           = "adrwal-storage-table-connection"
+#     is_manual_connection           = false
+#     private_connection_resource_id = azurerm_storage_account.main_storage.id
+#     subresource_names              = ["table"]
+#   }
 
-resource "azurerm_private_dns_zone_virtual_network_link" "vnet_storage_acc_file" {
-  name                  = "adrwal-storage-vnet-link-file"
-  resource_group_name   = azurerm_resource_group.main_rg.name
-  private_dns_zone_name = azurerm_private_dns_zone.storage_acc_dns_zone_file.name
-  virtual_network_id    = azurerm_virtual_network.main_vnet.id
-  registration_enabled  = false
-}
-resource "azurerm_private_dns_zone_virtual_network_link" "vnet_storage_acc_queue" {
-  name                  = "adrwal-storage-vnet-link-queue"
-  resource_group_name   = azurerm_resource_group.main_rg.name
-  private_dns_zone_name = azurerm_private_dns_zone.storage_acc_dns_zone_queue.name
-  virtual_network_id    = azurerm_virtual_network.main_vnet.id
-  registration_enabled  = false
-}
-resource "azurerm_private_dns_zone_virtual_network_link" "vnet_storage_acc_table" {
-  name                  = "adrwal-storage-vnet-link-table"
-  resource_group_name   = azurerm_resource_group.main_rg.name
-  private_dns_zone_name = azurerm_private_dns_zone.storage_acc_dns_zone_table.name
-  virtual_network_id    = azurerm_virtual_network.main_vnet.id
-  registration_enabled  = false
-}
+#   private_dns_zone_group {
+#     name = "adrwal-storage-table-dns-group"
+#     private_dns_zone_ids = [
+#       azurerm_private_dns_zone.storage_acc_dns_zone_table.id,
+#     ]
+#   }
+# }
+
+# resource "azurerm_private_dns_zone" "storage_acc_dns_zone" {
+#   name                = "privatelink.blob.core.windows.net"
+#   resource_group_name = azurerm_resource_group.main_rg.name
+# }
+
+# resource "azurerm_private_dns_zone" "storage_acc_dns_zone_file" {
+#   name                = "privatelink.file.core.windows.net"
+#   resource_group_name = azurerm_resource_group.main_rg.name
+# }
+
+# resource "azurerm_private_dns_zone" "storage_acc_dns_zone_queue" {
+#   name                = "privatelink.queue.core.windows.net"
+#   resource_group_name = azurerm_resource_group.main_rg.name
+# }
+
+# resource "azurerm_private_dns_zone" "storage_acc_dns_zone_table" {
+#   name                = "privatelink.table.core.windows.net"
+#   resource_group_name = azurerm_resource_group.main_rg.name
+# }
+
+# resource "azurerm_private_dns_zone_virtual_network_link" "vnet_storage_acc" {
+#   name                  = "adrwal-storage-vnet-link"
+#   resource_group_name   = azurerm_resource_group.main_rg.name
+#   private_dns_zone_name = azurerm_private_dns_zone.storage_acc_dns_zone.name
+#   virtual_network_id    = azurerm_virtual_network.main_vnet.id
+#   registration_enabled  = false
+# }
+
+# resource "azurerm_private_dns_zone_virtual_network_link" "vnet_storage_acc_file" {
+#   name                  = "adrwal-storage-vnet-link-file"
+#   resource_group_name   = azurerm_resource_group.main_rg.name
+#   private_dns_zone_name = azurerm_private_dns_zone.storage_acc_dns_zone_file.name
+#   virtual_network_id    = azurerm_virtual_network.main_vnet.id
+#   registration_enabled  = false
+# }
+# resource "azurerm_private_dns_zone_virtual_network_link" "vnet_storage_acc_queue" {
+#   name                  = "adrwal-storage-vnet-link-queue"
+#   resource_group_name   = azurerm_resource_group.main_rg.name
+#   private_dns_zone_name = azurerm_private_dns_zone.storage_acc_dns_zone_queue.name
+#   virtual_network_id    = azurerm_virtual_network.main_vnet.id
+#   registration_enabled  = false
+# }
+# resource "azurerm_private_dns_zone_virtual_network_link" "vnet_storage_acc_table" {
+#   name                  = "adrwal-storage-vnet-link-table"
+#   resource_group_name   = azurerm_resource_group.main_rg.name
+#   private_dns_zone_name = azurerm_private_dns_zone.storage_acc_dns_zone_table.name
+#   virtual_network_id    = azurerm_virtual_network.main_vnet.id
+#   registration_enabled  = false
+# }
 
 
 # ==================================================
@@ -461,8 +475,8 @@ resource "azurerm_linux_function_app" "func_app" {
   location                   = azurerm_resource_group.main_rg.location
   resource_group_name        = azurerm_resource_group.main_rg.name
   service_plan_id            = azurerm_service_plan.func_plan.id
-  storage_account_name       = azurerm_storage_account.main_storage.name #
-  storage_account_access_key = azurerm_storage_account.main_storage.primary_access_key
+  storage_account_name       = module.storage.name #
+  storage_account_access_key = module.storage.primary_access_key
 
   identity {
     type = "SystemAssigned"
@@ -490,14 +504,14 @@ resource "azurerm_linux_function_app" "func_app" {
 
   app_settings = {
 
-    "AzureWebJobsStorage"                      = azurerm_storage_account.main_storage.primary_connection_string
-    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING" = azurerm_storage_account.main_storage.primary_connection_string
+    "AzureWebJobsStorage"                      = module.storage.primary_connection_string
+    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING" = module.storage.primary_connection_string
     "WEBSITE_CONTENTSHARE"                     = lower("adrwal-func-app-de-${random_string.rand_str.result}")
     "FUNCTIONS_EXTENSION_VERSION"              = "~4"
     "FUNCTIONS_WORKER_RUNTIME"                 = "python"
     "KEY_VAULT_URI"                            = azurerm_key_vault.vault.vault_uri
-    "STORAGE_ACCOUNT_NAME"                     = azurerm_storage_account.main_storage.name
-    "CONTAINER_NAME"                           = azurerm_storage_container.main_container.name
+    "STORAGE_ACCOUNT_NAME"                     = module.storage.name
+    "CONTAINER_NAME"                           = module.storage.container_name
     "SECRET_NAME"                              = "SECRET-TEST"
     "WEBSITE_DNS_SERVER"                       = "168.63.129.16"
     "WEBSITE_VNET_ROUTE_ALL"                   = "1"
@@ -513,8 +527,8 @@ resource "azurerm_linux_function_app" "func_app" {
   }
 
   depends_on = [
-    azurerm_private_endpoint.sotrage_acc_file_endpoint,
-    azurerm_private_dns_zone_virtual_network_link.vnet_storage_acc_file
+    # azurerm_private_endpoint.sotrage_acc_file_endpoint,
+    # azurerm_private_dns_zone_virtual_network_link.vnet_storage_acc_file
   ]
 }
 
@@ -575,5 +589,5 @@ resource "azurerm_role_assignment" "func_vault_read" {
 resource "azurerm_role_assignment" "func_storage_read" {
   principal_id         = azurerm_linux_function_app.func_app.identity[0].principal_id
   role_definition_name = "Storage Blob Data Reader"
-  scope                = azurerm_storage_account.main_storage.id
+  scope                = module.storage.id
 }

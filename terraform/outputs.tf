@@ -1,7 +1,7 @@
 
 output "disable_storage_acc_public_network_access" {
   description = "Disable public network access for the Storage Account."
-  value       = "az storage account update --name ${azurerm_storage_account.main_storage.name} --resource-group ${azurerm_resource_group.main_rg.name} --public-network-access 'Disabled' --default-action 'Deny'"
+  value       = "az storage account update --name ${module.storage.name} --resource-group ${azurerm_resource_group.main_rg.name} --public-network-access 'Disabled' --default-action 'Deny'"
 }
 
 output "disable_vault_public_network_access" {
